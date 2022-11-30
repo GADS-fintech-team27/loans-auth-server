@@ -8,7 +8,7 @@ import userRouter from "./routes/user.route";
 dotenv.config();
 
 const app = express();
-const port = process.env.SERVER_PORT || 3000;
+const port = process.env.SERVER_PORT || 8080;
 app.use(express.json());
 app.use(helmet.hidePoweredBy());
 app.use(cors());
