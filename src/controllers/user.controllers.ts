@@ -7,26 +7,43 @@ import { Cookie, Jwt } from "../utils/constants";
 import { StatusCode } from "../utils/errors/errors";
 import { NotFound } from "../utils/errors";
 
-export default class UserController {
+export default class {
   static async signUp(req: Request, res: Response) {
     const { firstname, lastname, email, password } = req.body;
-    const hashPassword = await EcryptPassword.hashPassword(password);
-    const userInboundPayload = {
-      firstname,
-      lastname,
-      email,
-      password: hashPassword,
-    };
     try {
-      await User.create(userInboundPayload);
-      res
-        .status(StatusCode.CREATED)
-        .json({ message: "user created successfully" });
+      const user = await User.findOne({ where: { email: email } });
+      if (user) {
+        throw Error("user already exists");
+      }
+      const hashPassword = await EcryptPassword.hashPassword(password);
+      const userInboundPayload = {
+        firstname,
+        lastname,
+        email,
+        password: hashPassword,
+      };
+      const createdUser = await User.create(userInboundPayload);
+      if (createdUser) {
+        res
+          .status(StatusCode.CREATED)
+          .json({ message: "user created successfully" });
+      } else {
+        throw Error("An error has occured");
+      }
     } catch (error) {
-      res
-        .status(StatusCode.INTERNAL_SERVER_ERROR)
-        .json({ message: error.message });
+      res.status(StatusCode.CONFLICT).json({ message: error.message });
     }
+
+    // try {
+    //   await User.create(userInboundPayload);
+    //   res
+    //     .status(StatusCode.CREATED)
+    //     .json({ message: "user created successfully" });
+    // } catch (error) {
+    //   res
+    //     .status(StatusCode.INTERNAL_SERVER_ERROR)
+    //     .json({ message: error.message });
+    // }
   }
 
   static async signIn(req: Request, res: Response) {
@@ -45,15 +62,20 @@ export default class UserController {
           process.env.JWT_SECRET_KEY,
           {
             expiresIn: Jwt.EXPIRES_IN,
+          },
+          (error, accessToken) => {
+            if (error) {
+              throw error;
+            }
+            res.status(200).json({ accessToken: accessToken });
           }
         );
         // change the secure property of the cookie to true in production
-        res.cookie("accessToken", accessToken, {
-          maxAge: Cookie.MAX_AGE,
-          secure: false,
-          httpOnly: true,
-        });
-        res.status(StatusCode.NOT_CONTENT).json({});
+        // res.cookie("accessToken", accessToken, {
+        // maxAge: Cookie.MAX_AGE,
+        //   secure: false,
+        //   httpOnly: true,
+        // });
       }
     } catch (error) {
       res.status(error.statusCode).json({ message: error.message });
