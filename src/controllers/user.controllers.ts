@@ -56,9 +56,9 @@ export default class {
       const validUser = await compare(password, registeredUser.password);
 
       if (validUser) {
-        const { firstname, lastname, email } = registeredUser;
+        const { id, firstname, lastname, email } = registeredUser;
         const accessToken = await sign(
-          { username: email, firstname, lastname },
+          { userId: id, username: email, firstname, lastname },
           process.env.JWT_SECRET_KEY,
           {
             expiresIn: Jwt.EXPIRES_IN,
@@ -89,6 +89,23 @@ export default class {
     } catch (error) {
       res.status(500).json({
         message: error.message,
+      });
+    }
+  }
+
+  static async findUser(req: any, res: Response) {
+    try {
+      const id = req.params.id;
+      const user = await User.findByPk(id, {
+        attributes: { exclude: ["password", "createdAt", "updatedAt"] },
+      });
+      if (!user) {
+        throw Error("user does not exist");
+      }
+      res.status(StatusCode.OK).json(user);
+    } catch (error) {
+      res.status(500).json({
+        erroMessage: error.message,
       });
     }
   }
